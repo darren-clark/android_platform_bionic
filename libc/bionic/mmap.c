@@ -41,3 +41,13 @@ void* mmap(void *addr, size_t size, int prot, int flags, int fd, long offset)
 
     return __mmap2(addr, size, prot, flags, fd, (size_t)offset >> MMAP2_SHIFT);
 }
+
+void* mmap64(void *addr, size_t size, int prot, int flags, int fd, off64_t offset)
+{
+    if (offset & ((1UL << MMAP2_SHIFT)-1)) {
+        errno = EINVAL;
+        return MAP_FAILED;
+    }
+
+    return __mmap2(addr, size, prot, flags, fd, (uint64_t)offset >> MMAP2_SHIFT);
+}
