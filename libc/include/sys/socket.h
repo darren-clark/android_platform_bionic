@@ -61,6 +61,12 @@ typedef int socklen_t;
 #define SOCK_PACKET      10
 #endif
 
+/* Atomically set close-on-exec flag for the new descriptor(s) */
+#define SOCK_CLOEXEC	02000000
+
+/* Atomically mark descriptor(s) as non-blocking */
+#define SOCK_NONBLOCK	00004000
+
 /* BIONIC: second argument to shutdown() */
 enum {
     SHUT_RD = 0,        /* no more receptions */
