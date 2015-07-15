@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2013 The Android Open Source Project
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,41 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _POLL_H_
-#define _POLL_H_
+#include <sys/poll.h>
 
-#include <sys/cdefs.h>
-#include <linux/poll.h>
-#include <signal.h> /* For sigset_t. */
-#include <time.h> /* For timespec. */
+#include "private/kernel_sigset_t.h"
 
-__BEGIN_DECLS
+extern "C" int __ppoll(pollfd*, unsigned int, timespec*, const kernel_sigset_t*, size_t);
 
-typedef unsigned int nfds_t;
+void timespec_from_ms(timespec& ts, const int ms) {
+  ts.tv_sec = ms / 1000;
+  ts.tv_nsec = (ms % 1000) * 1000000;
+}
 
-extern int poll(struct pollfd*, nfds_t, int);
-extern int ppoll(struct pollfd*, nfds_t, const struct timespec*, const sigset_t*);
+int poll(pollfd* fds, nfds_t fd_count, int ms) {
+  timespec ts;
+  timespec* ts_ptr = NULL;
+  if (ms >= 0) {
+    timespec_from_ms(ts, ms);
+    ts_ptr = &ts;
+  }
+  return __ppoll(fds, fd_count, ts_ptr, NULL, 0);
+}
 
-__END_DECLS
+int ppoll(pollfd* fds, nfds_t fd_count, const timespec* ts, const sigset_t* ss) {
+  timespec mutable_ts;
+  timespec* mutable_ts_ptr = NULL;
+  if (ts != NULL) {
+    mutable_ts = *ts;
+    mutable_ts_ptr = &mutable_ts;
+  }
 
-#endif /* _POLL_H_ */
+  kernel_sigset_t kernel_ss;
+  kernel_sigset_t* kernel_ss_ptr = NULL;
+  if (ss != NULL) {
+    kernel_ss.set(ss);
+    kernel_ss_ptr = &kernel_ss;
+  }
+
+  return __ppoll(fds, fd_count, mutable_ts_ptr, kernel_ss_ptr, sizeof(kernel_ss));
+}
